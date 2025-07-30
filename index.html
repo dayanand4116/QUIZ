@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PKL Quiz Challenge</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div id="start-screen" class="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
+        <h1 class="text-3xl font-bold mb-6 text-indigo-700">Welcome to the PKL Quiz Challenge!</h1>
+        <label for="userName" class="block text-lg mb-2 text-gray-700">Please enter your name:</label>
+        <input type="text" id="userName" placeholder="Your Name" class="p-3 border border-gray-300 rounded-md mb-6 w-full focus:outline-none focus:ring-2 focus:ring-indigo-500">
+
+        <div id="level-selection" class="mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">Select your Level:</h2>
+            <div class="flex justify-center space-x-4">
+                <label class="inline-flex items-center cursor-pointer">
+                    <input type="radio" name="level" value="1" checked class="form-radio text-indigo-600 h-5 w-5">
+                    <span class="ml-2 text-lg text-gray-700">Level 1 (Easy)</span>
+                </label>
+                <label class="inline-flex items-center cursor-not-allowed opacity-50">
+                    <input type="radio" name="level" value="2" disabled class="form-radio text-indigo-600 h-5 w-5">
+                    <span class="ml-2 text-lg text-gray-700">Level 2 (Medium)</span>
+                </label>
+                <label class="inline-flex items-center cursor-not-allowed opacity-50">
+                    <input type="radio" name="level" value="3" disabled class="form-radio text-indigo-600 h-5 w-5">
+                    <span class="ml-2 text-lg text-gray-700">Level 3 (Hard)</span>
+                </label>
+            </div>
+        </div>
+
+        <button id="startButton" class="bg-indigo-600 text-white px-8 py-3 rounded-lg text-xl font-semibold hover:bg-indigo-700 transition duration-300 ease-in-out shadow-md">Start Quiz</button>
+    </div>
+
+    <div id="quiz-container" class="hidden bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+        <h1 id="quiz-title" class="text-2xl font-bold mb-6 text-indigo-700 text-center">PKL Quiz</h1>
+        <p id="level-display" class="text-md text-gray-600 text-center mb-4">Level 1</p>
+
+        <div id="question-area" class="text-xl font-medium mb-6 text-gray-900 text-center"></div>
+
+        <div id="options-container" class="grid grid-cols-1 gap-4 mb-6">
+            </div>
+
+        <div id="feedback-area" class="text-center font-semibold text-lg mb-6"></div>
+
+        <div class="flex justify-between items-center mt-4">
+            <button id="prev-btn" class="bg-gray-400 text-white px-5 py-2 rounded-md hover:bg-gray-500 transition duration-300 ease-in-out hidden">Previous</button>
+            <button id="next-btn" class="bg-indigo-600 text-white px-5 py-2 rounded-md hover:bg-indigo-700 transition duration-300 ease-in-out">Next Question</button>
+        </div>
+
+        <p id="score-area" class="text-right text-lg font-bold mt-6 text-gray-800">Score: 0</p>
+    </div>
+
+    <div id="results-container" class="hidden bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
+        <h2 class="text-2xl font-bold mb-6 text-indigo-700">Quiz Results!</h2>
+        <div id="chart-container" class="mb-6">
+            <canvas id="resultsChart"></canvas>
+        </div>
+        <p id="level-unlock-message" class="text-lg font-semibold mb-6"></p>
+        <button id="restart-btn" class="bg-green-600 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-green-700 transition duration-300 ease-in-out shadow-md">Restart Quiz</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

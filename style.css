@@ -1,0 +1,28 @@
+/* style.css */
+
+/* You can add any custom styles or overrides here */
+
+/* Example of a custom style if needed, e.g., for specific button states */
+.option-btn {
+    transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.option-btn:not(:disabled):active {
+    transform: scale(0.98);
+}
+
+.option-btn.selected {
+    border: 2px solid blue; /* Example for selected state */
+}
+
+/* Base styles for disabled elements not fully covered by Tailwind opacity utility */
+input[type="radio"]:disabled + span {
+    cursor: not-allowed;
+    color: #9ca3af; /* A darker gray for disabled text */
+}
+
+/* Ensure the canvas scales correctly */
+canvas {
+    max-width: 100%;
+    height: auto;
+}
