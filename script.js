@@ -89,16 +89,22 @@ const originalAllQuestions = {
 // --- Global State Variables ---
 let userName = "";
 let currentQuestionIndex = 0;
-let currentScore = 0; // Score for the current level
+let currentScore = 0;
 let currentLevel = 1;
 const totalLevels = Object.keys(originalAllQuestions).length;
-const QUESTIONS_PER_ROUND = 10; // <<<< KEY CHANGE: Define how many questions are asked per round
+const QUESTIONS_PER_ROUND = 10;
 
-let currentSessionQuestions = {}; // Holds shuffled questions for current session (up to 25 per level)
-let userAnswers = []; // Stores answers for the current round: [{questionIndex: 0, selectedOption: "Paris", isCorrect: true}, ...]
-let unlockedLevels = JSON.parse(localStorage.getItem('unlockedLevels')) || [1]; // Load or initialize unlocked levels
+let currentSessionQuestions = {};
+let userAnswers = [];
+let unlockedLevels = JSON.parse(localStorage.getItem('unlockedLevels')) || [1];
 
-let myChart = null; // To hold the Chart.js instance for results
+let myChart = null;
+let nextQuestionTimeout;
+
+// --- Timer Variables ---
+let timer;
+let timeLeft;
+const TIME_PER_QUESTION = 10;
 
 // --- DOM Elements ---
 const startScreen = document.getElementById('start-screen');
@@ -108,25 +114,23 @@ const levelRadios = document.querySelectorAll('input[name="level"]');
 
 const quizContainer = document.getElementById('quiz-container');
 const levelDisplay = document.getElementById('level-display');
+const timerDisplay = document.getElementById('timer-display');
 const questionArea = document.getElementById('question-area');
 const optionsContainer = document.getElementById('options-container');
 const feedbackArea = document.getElementById('feedback-area');
 const prevBtn = document.getElementById('prev-btn');
-const nextBtn = document.getElementById('next-btn');
 const scoreArea = document.getElementById('score-area');
+const questionNumberDisplay = document.getElementById('question-number-display');
+const quitBtn = document.getElementById('quit-btn');
 
 const resultsContainer = document.getElementById('results-container');
 const resultsChartCanvas = document.getElementById('resultsChart');
 const levelUnlockMessage = document.getElementById('level-unlock-message');
-const restartBtn = document.getElementById('restart-btn');
+const nextLevelBtn = document.getElementById('next-level-btn');
+const restartLevelBtn = document.getElementById('restart-level-btn');
+const homeBtn = document.getElementById('home-btn');
 
 // --- Helper Functions ---
-
-/**
- * Shuffles an array in place using the Fisher-Yates (Knuth) algorithm.
- * @param {Array} array - The array to shuffle.
- * @returns {Array} - The shuffled array.
- */
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -135,16 +139,14 @@ function shuffleArray(array) {
     return array;
 }
 
-/**
- * Updates the score display.
- */
 function updateScoreDisplay() {
-    scoreArea.textContent = `Score: ${currentScore}/${userAnswers.length} | Level: ${currentLevel}`;
+    scoreArea.textContent = `Score: ${currentScore}/${QUESTIONS_PER_ROUND}`;
 }
 
-/**
- * Enables or disables level selection radio buttons based on unlocked levels.
- */
+function updateQuestionNumberDisplay() {
+    questionNumberDisplay.textContent = `Q: ${currentQuestionIndex + 1}/${QUESTIONS_PER_ROUND}`;
+}
+
 function updateLevelSelectionUI() {
     levelRadios.forEach(radio => {
         const level = parseInt(radio.value);
@@ -158,208 +160,197 @@ function updateLevelSelectionUI() {
             radio.parentElement.classList.remove('cursor-pointer');
         }
     });
-    // Ensure the highest unlocked level is selected by default if available
     const highestUnlockedLevel = Math.max(...unlockedLevels);
-    // Only set checked if that level's radio button is not disabled
     const radioToSelect = document.querySelector(`input[name="level"][value="${highestUnlockedLevel}"]`);
     if (radioToSelect && !radioToSelect.disabled) {
         radioToSelect.checked = true;
     } else {
-        // Fallback to Level 1 if higher levels are locked or not found (shouldn't happen with current logic)
         document.querySelector(`input[name="level"][value="1"]`).checked = true;
     }
 }
 
-// --- Quiz Logic Functions ---
+// --- Timer Functions ---
+function startTimer() {
+    stopTimer();
+    clearTimeout(nextQuestionTimeout);
+    timeLeft = TIME_PER_QUESTION;
+    timerDisplay.textContent = timeLeft;
+    timerDisplay.style.color = 'red';
 
-/**
- * Initializes the quiz based on user name and selected level.
- */
+    timer = setInterval(() => {
+        timeLeft--;
+        timerDisplay.textContent = timeLeft;
+        if (timeLeft <= 5) {
+            timerDisplay.style.color = 'darkred';
+        } else {
+            timerDisplay.style.color = 'red';
+        }
+
+        if (timeLeft <= 0) {
+            stopTimer();
+            feedbackArea.textContent = "Time's up! Moving to the next question.";
+            feedbackArea.style.color = "orange";
+            selectAnswer(null, false);
+        }
+    }, 1000);
+}
+
+function stopTimer() {
+    clearInterval(timer);
+    timerDisplay.style.color = 'red';
+}
+
+// --- Quiz Logic Functions ---
 function initializeQuiz() {
-    // Get selected level from radio buttons
     const selectedLevelInput = document.querySelector('input[name="level"]:checked');
     currentLevel = parseInt(selectedLevelInput.value);
 
-    // Hide start screen, show quiz container
     startScreen.classList.add('hidden');
     quizContainer.classList.remove('hidden');
-    resultsContainer.classList.add('hidden'); // Ensure results are hidden if coming from a restart
+    resultsContainer.classList.add('hidden');
 
-    // Set up and start the quiz for the selected level
     startNewLevelQuiz();
 }
 
-/**
- * Sets up a new quiz session for the current level (shuffles questions, resets state).
- */
 function startNewLevelQuiz() {
     currentQuestionIndex = 0;
     currentScore = 0;
-    userAnswers = []; // Reset user answers for the new level/session
-
-    // Shuffle questions for all levels at the start of a new quiz session
+    userAnswers = [];
+    
     currentSessionQuestions = {};
     for (const levelKey in originalAllQuestions) {
         if (originalAllQuestions.hasOwnProperty(levelKey)) {
             const levelQuestionsCopy = [...originalAllQuestions[levelKey]];
-            // Shuffle the 25 questions, but we will only use the first 10
             currentSessionQuestions[levelKey] = shuffleArray(levelQuestionsCopy);
         }
     }
 
-    // Update UI for quiz start
     levelDisplay.textContent = `Level ${currentLevel}`;
-    quizContainer.classList.remove('hidden'); // Make sure quiz is visible
-    resultsContainer.classList.add('hidden'); // Hide results if visible
+    quizContainer.classList.remove('hidden');
+    resultsContainer.classList.add('hidden');
 
-    loadQuestion(); // Load the first question
+    loadQuestion();
 }
 
-/**
- * Loads and displays the current question and its options.
- */
 function loadQuestion() {
-    // const questionsForCurrentLevel = currentSessionQuestions[`level${currentLevel}`]; // Still get all 25 shuffled questions
-    // No need to get questionsForCurrentLevel here, just use currentSessionQuestions
-    // We only care about currentQuestionIndex relative to QUESTIONS_PER_ROUND
-
-    // <<<< KEY CHANGE: Check if we've completed the 10 questions for the current round
+    clearTimeout(nextQuestionTimeout);
+    
     if (currentQuestionIndex >= QUESTIONS_PER_ROUND || currentQuestionIndex < 0) {
-        showLevelResults(); // 10 questions for level answered, show results
+        showLevelResults();
         return;
     }
 
-    // Get the current question from the SHUFFLED list for the current level
-    const currentQ = currentSessionQuestions[`level${currentLevel}`][currentQuestionIndex];
+    startTimer();
 
+    const currentQ = currentSessionQuestions[`level${currentLevel}`][currentQuestionIndex];
     questionArea.textContent = currentQ.question;
-    optionsContainer.innerHTML = ''; // Clear previous options
-    feedbackArea.textContent = ''; // Clear previous feedback
+    optionsContainer.innerHTML = '';
+    feedbackArea.textContent = '';
 
     currentQ.options.forEach(option => {
         const button = document.createElement('button');
         button.textContent = option;
-        button.classList.add('option-btn', 'bg-gray-200', 'text-gray-800', 'hover:bg-indigo-200', 'py-3', 'px-4', 'rounded-md', 'text-left', 'w-full', 'transition-colors', 'duration-200');
-        button.onclick = () => selectAnswer(option); // Attach click handler
+        button.classList.add('option-btn', 'bg-gray-200', 'text-gray-800', 'hover:bg-indigo-200', 'py-4', 'px-4', 'rounded-lg', 'text-left', 'w-full', 'transition-colors', 'duration-200', 'font-medium', 'text-xl');
+        button.onclick = () => selectAnswer(option);
         optionsContainer.appendChild(button);
     });
 
-    // --- Button Visibility Logic ---
     prevBtn.classList.toggle('hidden', currentQuestionIndex === 0);
-
-    // <<<< KEY CHANGE: Next button logic based on QUESTIONS_PER_ROUND
-    if (currentQuestionIndex === QUESTIONS_PER_ROUND - 1) {
-        nextBtn.textContent = "Show Results";
-    } else {
-        nextBtn.textContent = "Next Question";
-    }
-    nextBtn.disabled = true; // Disable next button until an answer is selected
-
-    // Re-select previously chosen answer if exists for navigation
+    
     const existingAnswer = userAnswers.find(ans => ans.questionIndex === currentQuestionIndex);
     if (existingAnswer) {
-        selectAnswer(existingAnswer.selectedOption, true); // true to indicate re-selection
+        setTimeout(() => selectAnswer(existingAnswer.selectedOption, true), 0);
     } else {
-        // If no answer selected yet, ensure options are enabled
         document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = false);
     }
-
+    
     updateScoreDisplay();
+    updateQuestionNumberDisplay();
 }
 
-/**
- * Handles user selecting an answer. Stores it and provides feedback.
- * @param {string} selectedOption - The option text selected by the user.
- * @param {boolean} [isReloading=false] - True if this is a re-selection due to navigation.
- */
 function selectAnswer(selectedOption, isReloading = false) {
-    // Get the current question from the SHUFFLED list for the current level
+    stopTimer();
+
+    document.querySelectorAll('.option-btn').forEach(button => {
+        button.disabled = true;
+        button.classList.remove('hover:bg-indigo-200');
+    });
+
     const currentQ = currentSessionQuestions[`level${currentLevel}`][currentQuestionIndex];
     const isCorrect = (selectedOption === currentQ.correctAnswer);
 
-    // Find or create answer record for this question
     let answerRecord = userAnswers.find(ans => ans.questionIndex === currentQuestionIndex);
     if (!answerRecord) {
         answerRecord = { questionIndex: currentQuestionIndex, selectedOption: selectedOption, isCorrect: isCorrect };
         userAnswers.push(answerRecord);
     } else {
-        // Update existing answer if user changes their mind or navigates back
         answerRecord.selectedOption = selectedOption;
         answerRecord.isCorrect = isCorrect;
     }
 
-    // Recalculate current score based on all recorded correct answers for the current round
-    // Only count answers up to the current question index to reflect actual progress
     currentScore = userAnswers.filter(ans => ans.isCorrect && ans.questionIndex < QUESTIONS_PER_ROUND).length;
 
-
-    // Visual feedback
     const optionButtons = document.querySelectorAll('.option-btn');
     optionButtons.forEach(button => {
-        button.disabled = true; // Disable all options after selection
-        button.classList.remove('hover:bg-indigo-200'); // Remove hover effect
-
-        if (button.textContent === selectedOption) {
-            button.style.backgroundColor = isCorrect ? '#A7F3D0' : '#FECACA'; // Tailwind green-200 / red-200
+        if (selectedOption === null) {
+             if (button.textContent === currentQ.correctAnswer) {
+                button.style.backgroundColor = '#A7F3D0';
+            }
+        } else if (button.textContent === selectedOption) {
+            button.style.backgroundColor = isCorrect ? '#A7F3D0' : '#FECACA';
         } else if (button.textContent === currentQ.correctAnswer) {
-            button.style.backgroundColor = '#A7F3D0'; // Tailwind green-200 for correct
+            button.style.backgroundColor = '#A7F3D0';
         } else {
-            button.style.backgroundColor = ''; // Reset others
+            button.style.backgroundColor = '';
         }
     });
 
-    if (!isReloading) {
+    if (!isReloading && selectedOption !== null) {
         feedbackArea.textContent = isCorrect ? "Correct!" : `Incorrect! The correct answer was "${currentQ.correctAnswer}".`;
         feedbackArea.style.color = isCorrect ? "green" : "red";
+    } else if (selectedOption === null) {
+         feedbackArea.textContent = "Time's up! The correct answer was " + currentQ.correctAnswer + ".";
+         feedbackArea.style.color = "orange";
     }
 
-    nextBtn.disabled = false; // Enable next button after any selection
     updateScoreDisplay();
-}
-
-/**
- * Moves to the next question or shows results.
- */
-function nextQuestion() {
-    // <<<< KEY CHANGE: Check against QUESTIONS_PER_ROUND
-    if (currentQuestionIndex < QUESTIONS_PER_ROUND - 1) {
-        currentQuestionIndex++;
-        loadQuestion();
-    } else {
-        // Last question of the level, show results
-        showLevelResults();
+    
+    // Only set a new timeout if this is not a re-selection from navigation
+    if(!isReloading) {
+      const isLastQuestion = (currentQuestionIndex === QUESTIONS_PER_ROUND - 1);
+      nextQuestionTimeout = setTimeout(() => {
+          if(isLastQuestion) {
+              showLevelResults();
+          } else {
+              currentQuestionIndex++;
+              loadQuestion();
+          }
+      }, 3000);
     }
 }
 
-/**
- * Moves to the previous question.
- */
 function prevQuestion() {
+    stopTimer();
+    clearTimeout(nextQuestionTimeout);
     if (currentQuestionIndex > 0) {
         currentQuestionIndex--;
         loadQuestion();
     }
 }
 
-/**
- * Displays the results for the current level in a pie chart.
- * Checks for level unlocks.
- */
 function showLevelResults() {
-    // <<<< KEY CHANGE: totalQuestionsInLevel is now fixed at QUESTIONS_PER_ROUND
-    const totalQuestionsInLevel = QUESTIONS_PER_ROUND;
+    stopTimer();
+    clearTimeout(nextQuestionTimeout);
 
-    // Hide quiz elements, show results container
+    const totalQuestionsInLevel = QUESTIONS_PER_ROUND;
     quizContainer.classList.add('hidden');
     resultsContainer.classList.remove('hidden');
 
-    // Calculate correct and incorrect answers for the chart based on the 10 questions answered
     const correctCount = userAnswers.filter(ans => ans.isCorrect && ans.questionIndex < QUESTIONS_PER_ROUND).length;
     const incorrectCount = totalQuestionsInLevel - correctCount;
 
-    // Render Chart.js pie chart
     if (myChart) {
-        myChart.destroy(); // Destroy previous chart instance if exists
+        myChart.destroy();
     }
     myChart = new Chart(resultsChartCanvas, {
         type: 'pie',
@@ -367,8 +358,8 @@ function showLevelResults() {
             labels: ['Correct Answers', 'Incorrect Answers'],
             datasets: [{
                 data: [correctCount, incorrectCount],
-                backgroundColor: ['#34D399', '#EF4444'], // Tailwind green-500, red-500
-                borderColor: ['#10B981', '#DC2626'], // Darker shades for border
+                backgroundColor: ['#34D399', '#EF4444'],
+                borderColor: ['#10B981', '#DC2626'],
                 borderWidth: 1
             }]
         },
@@ -378,30 +369,21 @@ function showLevelResults() {
                 legend: {
                     position: 'top',
                     labels: {
-                        font: {
-                            size: 14
-                        }
+                        font: { size: 14 }
                     }
                 },
                 title: {
                     display: true,
                     text: `Level ${currentLevel} Results for ${userName}`,
-                    font: {
-                        size: 20,
-                        weight: 'bold'
-                    },
-                    color: '#1F2937' // Tailwind gray-800
+                    font: { size: 20, weight: 'bold' },
+                    color: '#1F2937'
                 },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
                             let label = context.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed !== null) {
-                                label += context.parsed;
-                            }
+                            if (label) { label += ': '; }
+                            if (context.parsed !== null) { label += context.parsed; }
                             return label;
                         }
                     }
@@ -410,57 +392,80 @@ function showLevelResults() {
         }
     });
 
-    // Level Unlock Logic & Message
-    if (correctCount >= 5 && currentLevel < totalLevels) {
+    const qualifiedForNextLevel = (correctCount >= 5);
+
+    nextLevelBtn.classList.add('hidden');
+    restartLevelBtn.classList.add('hidden');
+    homeBtn.classList.add('hidden');
+
+    if (qualifiedForNextLevel && currentLevel < totalLevels) {
         levelUnlockMessage.textContent = `Excellent, ${userName}! You scored ${correctCount} correct answers. Level ${currentLevel + 1} is now unlocked!`;
         levelUnlockMessage.style.color = 'green';
         if (!unlockedLevels.includes(currentLevel + 1)) {
             unlockedLevels.push(currentLevel + 1);
             localStorage.setItem('unlockedLevels', JSON.stringify(unlockedLevels));
-            updateLevelSelectionUI(); // Update UI on the start screen
+            updateLevelSelectionUI();
         }
-    } else if (currentLevel === totalLevels && correctCount >= 5) {
+        nextLevelBtn.classList.remove('hidden');
+        homeBtn.classList.remove('hidden');
+    } else if (currentLevel === totalLevels && qualifiedForNextLevel) {
         levelUnlockMessage.textContent = `Fantastic, ${userName}! You've completed all levels with a score of ${correctCount}!`;
         levelUnlockMessage.style.color = 'blue';
+        homeBtn.classList.remove('hidden');
     } else {
         levelUnlockMessage.textContent = `Good effort, ${userName}! You scored ${correctCount} correct answers. You need 5 correct answers to unlock the next level. Try again!`;
         levelUnlockMessage.style.color = 'red';
+        restartLevelBtn.classList.remove('hidden');
+        homeBtn.classList.remove('hidden');
     }
 }
 
-/**
- * Restarts the quiz. Goes back to the start screen for level selection.
- */
-function restartQuiz() {
-    currentLevel = 1; // Reset current level to 1 when restarting
-    currentQuestionIndex = 0; // Reset question index
-    currentScore = 0; // Reset score
-    userAnswers = []; // Clear answers
-
-    // Hide result container, show start screen
-    resultsContainer.classList.add('hidden');
+function goHome() {
+    stopTimer();
+    clearTimeout(nextQuestionTimeout);
     startScreen.classList.remove('hidden');
-    userNameInput.value = ""; // Clear username input field
-    userName = ""; // Clear stored username
-
-    updateLevelSelectionUI(); // Ensure level selection is correctly displayed (L1 selected, others locked/unlocked based on storage)
+    quizContainer.classList.add('hidden');
+    resultsContainer.classList.add('hidden');
+    userNameInput.value = "";
+    userName = "";
+    currentLevel = 1;
+    currentQuestionIndex = 0;
+    currentScore = 0;
+    userAnswers = [];
+    updateLevelSelectionUI();
 }
 
+function goToNextLevel() {
+    currentLevel++;
+    startNewLevelQuiz();
+}
+
+function restartCurrentLevel() {
+    startNewLevelQuiz();
+}
 
 // --- Event Listeners ---
 document.addEventListener('DOMContentLoaded', () => {
-    updateLevelSelectionUI(); // Initialize level radio buttons based on localStorage on page load
+    updateLevelSelectionUI();
 
     startButton.addEventListener('click', () => {
         userName = userNameInput.value.trim();
-        if (userName) {
-            initializeQuiz(); // This will handle showing quiz and starting the selected level
-        } else {
+        const nameRegex = /^[a-zA-Z\s]+$/;
+
+        if (!userName) {
             alert("Please enter your name to start the quiz!");
+        } else if (!nameRegex.test(userName)) {
+            alert("Your name can only contain letters and spaces. Numbers and special characters are not allowed.");
+            userNameInput.value = "";
+        } else {
+            initializeQuiz();
         }
     });
 
-    nextBtn.addEventListener('click', nextQuestion);
     prevBtn.addEventListener('click', prevQuestion);
-    restartBtn.addEventListener('click', restartQuiz); // For the button on the results screen
+    
+    quitBtn.addEventListener('click', goHome);
+    nextLevelBtn.addEventListener('click', goToNextLevel);
+    restartLevelBtn.addEventListener('click', restartCurrentLevel);
+    homeBtn.addEventListener('click', goHome);
 });
