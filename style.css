@@ -1,24 +1,84 @@
 /* style.css */
 
-/* You can add any custom styles or overrides here */
+/* Background Theme - Deep purple gradient */
+body {
+    background-image: linear-gradient(to right, #4b0082, #2c004d);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    position: relative;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
 
-/* Example of a custom style if needed, e.g., for specific button states */
+/* Add a vibrant stage-like effect */
+body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at center, rgba(128, 0, 128, 0.4), rgba(0, 0, 0, 0.6));
+    z-index: 0;
+}
+
+/* Ensure quiz containers are above the background overlay */
+#start-screen, #quiz-container, #results-container {
+    z-index: 10;
+    position: relative;
+}
+
+/* New, more attractive style for the main quiz container */
+.quiz-box {
+    background-color: #f8f8f8; /* A light, metallic off-white */
+    border: 2px solid #e0e0e0;
+    border-radius: 1.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom styles for option buttons */
 .option-btn {
-    transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+    background-color: #2c3e50; /* A dark, elegant blue/gray */
+    color: #ffffff;
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+    border-radius: 0.75rem;
+    border: none;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+    text-align: center;
 }
 
-.option-btn:not(:disabled):active {
-    transform: scale(0.98);
+.option-btn:hover:not(:disabled) {
+    background-color: #ffc107; /* Vibrant gold/yellow on hover */
+    color: #2c3e50; /* Dark text on hover */
+    transform: translateY(-2px);
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15), 0 3px 6px rgba(0, 0, 0, 0.1);
 }
 
-.option-btn.selected {
-    border: 2px solid blue; /* Example for selected state */
+.option-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Styles for correct and incorrect answers */
+.option-btn[style*="background-color: rgb(167, 243, 208)"] { /* Green */
+    background-color: #1abc9c !important; /* A more modern green */
+    box-shadow: 0 4px 10px rgba(26, 188, 156, 0.4);
+    color: #ffffff !important;
+}
+
+.option-btn[style*="background-color: rgb(254, 202, 202)"] { /* Red */
+    background-color: #e74c3c !important; /* A darker, more elegant red */
+    box-shadow: 0 4px 10px rgba(231, 76, 60, 0.4);
+    color: #ffffff !important;
 }
 
 /* Base styles for disabled elements not fully covered by Tailwind opacity utility */
 input[type="radio"]:disabled + span {
     cursor: not-allowed;
-    color: #9ca3af; /* A darker gray for disabled text */
+    color: #9ca3af;
 }
 
 /* Ensure the canvas scales correctly */
