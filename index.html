@@ -3,79 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PKL Quiz Challenge</title>
+    <title>PKL Quiz - Home</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+<body class="blue-theme flex items-center justify-center min-h-screen p-4">
 
-    <div id="start-screen" class="bg-white p-10 rounded-xl shadow-2xl max-w-lg w-full text-center relative z-10">
-        <h1 class="text-3xl font-bold mb-6 text-indigo-700">Welcome to the PKL Quiz Challenge!</h1>
-        <label for="userName" class="block text-lg mb-2 text-gray-700">Please enter your name:</label>
-        <input type="text" id="userName" placeholder="Your Name" class="p-3 border border-gray-300 rounded-md mb-6 w-full focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg">
-
-        <div id="level-selection" class="mb-8">
-            <h2 class="text-xl font-semibold mb-4 text-gray-800">Select your Level:</h2>
-            <div class="flex justify-center space-x-4">
-                <label class="inline-flex items-center cursor-pointer">
-                    <input type="radio" name="level" value="1" checked class="form-radio text-indigo-600 h-5 w-5">
-                    <span class="ml-2 text-lg text-gray-700">Level 1 (Easy)</span>
-                </label>
-                <label class="inline-flex items-center cursor-not-allowed opacity-50">
-                    <input type="radio" name="level" value="2" disabled class="form-radio text-indigo-600 h-5 w-5">
-                    <span class="ml-2 text-lg text-gray-700">Level 2 (Medium)</span>
-                </label>
-                <label class="inline-flex items-center cursor-not-allowed opacity-50">
-                    <input type="radio" name="level" value="3" disabled class="form-radio text-indigo-600 h-5 w-5">
-                    <span class="ml-2 text-lg text-gray-700">Level 3 (Hard)</span>
-                </label>
-            </div>
-        </div>
-
-        <button id="startButton" class="bg-indigo-600 text-white px-8 py-3 rounded-lg text-xl font-semibold hover:bg-indigo-700 transition duration-300 ease-in-out shadow-md">Start Quiz</button>
+    <div class="p-10 rounded-xl shadow-2xl max-w-lg w-full text-center relative z-10 glass-container">
+        <h1 class="text-4xl font-extrabold mb-6 text-white leading-tight">
+            Pro Kabaddi League <br> Quiz Challenge
+        </h1>
+        <p class="text-lg mb-8 text-gray-200">
+            Test your Kabaddi knowledge! <br> Play through three exciting levels.
+        </p>
+        <img src="logo.png" alt="PKL Official Logo" class="mx-auto mb-8 w-48 h-auto">
+        <a href="quiz.html" class="inline-block bg-white text-indigo-700 px-10 py-4 rounded-lg text-xl font-semibold hover:bg-gray-200 transition duration-300 ease-in-out shadow-lg transform hover:scale-105">
+            Start Quiz!
+        </a>
     </div>
 
-    <div id="quiz-container" class="hidden quiz-box p-10 rounded-xl shadow-2xl max-w-lg w-full relative z-10">
-        <div class="flex justify-between items-center mb-6">
-            <div class="flex items-center space-x-4">
-                <p id="score-area" class="text-xl font-bold text-gray-800">Score: 0/10</p>
-                <p id="question-number-display" class="text-xl font-bold text-gray-800">Q: 1/10</p>
-            </div>
-            <div class="flex items-center space-x-4">
-                <button id="quit-btn" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition duration-300 ease-in-out text-sm font-semibold">QUIT</button>
-                <p id="level-display" class="text-lg text-gray-600">Level 1</p>
-            </div>
-        </div>
-
-        <div id="timer-display" class="text-center text-4xl font-extrabold text-red-600 mb-6">10</div>
-
-        <div id="question-area" class="text-2xl font-medium mb-8 text-gray-900 text-center"></div>
-
-        <div id="options-container" class="grid grid-cols-1 gap-4 mb-8">
-            </div>
-
-        <div id="feedback-area" class="text-center font-semibold text-lg mb-6"></div>
-
-        <div class="flex justify-center items-center mt-4">
-            <button id="prev-btn" class="bg-gray-400 text-white px-6 py-3 rounded-md hover:bg-gray-500 transition duration-300 ease-in-out text-lg hidden">Previous</button>
-        </div>
-    </div>
-
-    <div id="results-container" class="hidden bg-white p-10 rounded-xl shadow-2xl max-w-lg w-full text-center relative z-10">
-        <h2 class="text-3xl font-bold mb-6 text-indigo-700">Quiz Results!</h2>
-        <div id="chart-container" class="mb-6">
-            <canvas id="resultsChart"></canvas>
-        </div>
-        <p id="level-unlock-message" class="text-lg font-semibold mb-6"></p>
-        
-        <div class="flex flex-col space-y-4">
-            <button id="next-level-btn" class="bg-green-600 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-green-700 transition duration-300 ease-in-out shadow-md hidden">Go to Next Level</button>
-            <button id="restart-level-btn" class="bg-yellow-600 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-yellow-700 transition duration-300 ease-in-out shadow-md hidden">Restart Level</button>
-            <button id="home-btn" class="bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition duration-300 ease-in-out shadow-md hidden">Back to Home</button>
-        </div>
-    </div>
-
-    <script src="script.js"></script>
 </body>
 </html>
