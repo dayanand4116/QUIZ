@@ -35,7 +35,7 @@ const originalAllQuestions = {
         { question: "In which season did Patna Pirates win their first title?", options: ["Season 1", "Season 2", "Season 3", "Season 4"], correctAnswer: "Season 3" },
         { question: "Which team did Pawan Sehrawat start his PKL career with?", options: ["Tamil Thalaivas", "Patna Pirates", "Bengaluru Bulls", "U Mumba"], correctAnswer: "U Mumba" },
         { question: "Who is the only foreign player to score 300+ raid points in a season?", options: ["Mohammad Nabibakhsh", "Jang Kun Lee", "Meraj Sheykh", "None"], correctAnswer: "None" },
-        { question: "Which team had a mascot called 'Singham'?", options: ["Haryana Steelers", "Puneri Paltan", "Tamil Thalaivas", "Jaipur Pink Panthers"], correctAnswer: "Haryana Steelers" },
+        { question: "Which team had a mascot called 'Singham'?", options: ["Haryana Steelers", "Puneri Paltan", "Tamil Thalaivas", "Jaipur Pink Panthers"], correctAnswer: "A" },
         { question: "Who is known for his 'Running Hand Touch'?", options: ["Pawan Sehrawat", "Naveen Kumar", "Rahul Chaudhari", "Ajay Thakur"], correctAnswer: "Rahul Chaudhari" },
         { question: "What is the maximum points possible in a single successful Super Raid?", options: ["2", "3", "4", "5"], correctAnswer: "5" },
         { question: "Which team is coached by Rakesh Kumar (former India captain)?", options: ["Haryana Steelers", "Patna Pirates", "Telugu Titans", "Tamil Thalaivas"], correctAnswer: "Haryana Steelers" },
@@ -96,7 +96,7 @@ const QUESTIONS_PER_ROUND = 10;
 
 let currentSessionQuestions = {};
 let userAnswers = [];
-let unlockedLevels = JSON.parse(localStorage.getItem('unlockedLevels')) || [1];
+let unlockedLevels = JSON.parse(localStorage.getItem('unlockedLevels')) || [1, 2, 3];
 
 let myChart = null;
 let nextQuestionTimeout;
@@ -209,6 +209,11 @@ function initializeQuiz() {
     quizContainer.classList.remove('hidden');
     resultsContainer.classList.add('hidden');
 
+    if (typeof motion !== 'undefined') {
+        motion.animate('#start-screen', { opacity: 0, scale: 0.9 }, { duration: 0.3 });
+        motion.animate('#quiz-container', { opacity: [0, 1], scale: [0.9, 1] }, { duration: 0.3 });
+    }
+    
     startNewLevelQuiz();
 }
 
@@ -246,14 +251,18 @@ function loadQuestion() {
     questionArea.textContent = currentQ.question;
     optionsContainer.innerHTML = '';
     feedbackArea.textContent = '';
+    
+    // --- UPDATED CODE: Shuffle options array
+    const shuffledOptions = shuffleArray([...currentQ.options]);
 
-    currentQ.options.forEach(option => {
+    shuffledOptions.forEach(option => {
         const button = document.createElement('button');
         button.textContent = option;
-        button.classList.add('option-btn', 'bg-gray-200', 'text-gray-800', 'hover:bg-indigo-200', 'py-4', 'px-4', 'rounded-lg', 'text-left', 'w-full', 'transition-colors', 'duration-200', 'font-medium', 'text-xl');
+        button.classList.add('option-btn', 'py-4', 'px-4', 'rounded-lg', 'text-left', 'w-full', 'transition-colors', 'duration-200', 'font-medium', 'text-xl');
         button.onclick = () => selectAnswer(option);
         optionsContainer.appendChild(button);
     });
+    // --- END OF UPDATED CODE ---
 
     prevBtn.classList.toggle('hidden', currentQuestionIndex === 0);
     
@@ -273,7 +282,6 @@ function selectAnswer(selectedOption, isReloading = false) {
 
     document.querySelectorAll('.option-btn').forEach(button => {
         button.disabled = true;
-        button.classList.remove('hover:bg-indigo-200');
     });
 
     const currentQ = currentSessionQuestions[`level${currentLevel}`][currentQuestionIndex];
@@ -292,22 +300,21 @@ function selectAnswer(selectedOption, isReloading = false) {
 
     const optionButtons = document.querySelectorAll('.option-btn');
     optionButtons.forEach(button => {
-        if (selectedOption === null) {
-             if (button.textContent === currentQ.correctAnswer) {
-                button.style.backgroundColor = '#A7F3D0';
-            }
+        // Remove existing color classes first to prevent conflicts
+        button.classList.remove('correct-answer', 'wrong-answer');
+
+        if (button.textContent === currentQ.correctAnswer) {
+            button.classList.add('correct-answer');
         } else if (button.textContent === selectedOption) {
-            button.style.backgroundColor = isCorrect ? '#A7F3D0' : '#FECACA';
-        } else if (button.textContent === currentQ.correctAnswer) {
-            button.style.backgroundColor = '#A7F3D0';
-        } else {
-            button.style.backgroundColor = '';
+            if (!isCorrect) {
+                button.classList.add('wrong-answer');
+            }
         }
     });
 
     if (!isReloading && selectedOption !== null) {
         feedbackArea.textContent = isCorrect ? "Correct!" : `Incorrect! The correct answer was "${currentQ.correctAnswer}".`;
-        feedbackArea.style.color = isCorrect ? "green" : "red";
+        feedbackArea.style.color = isCorrect ? "#2ecc71" : "#e74c3c";
     } else if (selectedOption === null) {
          feedbackArea.textContent = "Time's up! The correct answer was " + currentQ.correctAnswer + ".";
          feedbackArea.style.color = "orange";
@@ -315,15 +322,29 @@ function selectAnswer(selectedOption, isReloading = false) {
 
     updateScoreDisplay();
     
-    // Only set a new timeout if this is not a re-selection from navigation
     if(!isReloading) {
       const isLastQuestion = (currentQuestionIndex === QUESTIONS_PER_ROUND - 1);
       nextQuestionTimeout = setTimeout(() => {
           if(isLastQuestion) {
-              showLevelResults();
+              if (typeof motion !== 'undefined') {
+                motion.animate('#quiz-container', { opacity: 0, scale: 0.9 }, { duration: 0.3 }).then(() => {
+                    showLevelResults();
+                    motion.animate('#results-container', { opacity: [0, 1], scale: [0.9, 1] }, { duration: 0.3 });
+                });
+              } else {
+                showLevelResults();
+              }
           } else {
-              currentQuestionIndex++;
-              loadQuestion();
+              if (typeof motion !== 'undefined') {
+                motion.animate('#quiz-container', { opacity: [1, 0], scale: [1, 0.9] }, { duration: 0.15 }).then(() => {
+                    currentQuestionIndex++;
+                    loadQuestion();
+                    motion.animate('#quiz-container', { opacity: [0, 1], scale: [0.9, 1] }, { duration: 0.15 });
+                });
+              } else {
+                currentQuestionIndex++;
+                loadQuestion();
+              }
           }
       }, 3000);
     }
@@ -332,9 +353,18 @@ function selectAnswer(selectedOption, isReloading = false) {
 function prevQuestion() {
     stopTimer();
     clearTimeout(nextQuestionTimeout);
+
     if (currentQuestionIndex > 0) {
-        currentQuestionIndex--;
-        loadQuestion();
+        if (typeof motion !== 'undefined') {
+            motion.animate('#quiz-container', { opacity: [1, 0], scale: [1, 0.9] }, { duration: 0.15 }).then(() => {
+                currentQuestionIndex--;
+                loadQuestion();
+                motion.animate('#quiz-container', { opacity: [0, 1], scale: [0.9, 1] }, { duration: 0.15 });
+            });
+        } else {
+            currentQuestionIndex--;
+            loadQuestion();
+        }
     }
 }
 
@@ -358,8 +388,8 @@ function showLevelResults() {
             labels: ['Correct Answers', 'Incorrect Answers'],
             datasets: [{
                 data: [correctCount, incorrectCount],
-                backgroundColor: ['#34D399', '#EF4444'],
-                borderColor: ['#10B981', '#DC2626'],
+                backgroundColor: ['#2ecc71', '#e74c3c'],
+                borderColor: ['#2ecc71', '#e74c3c'],
                 borderWidth: 1
             }]
         },
@@ -376,7 +406,7 @@ function showLevelResults() {
                     display: true,
                     text: `Level ${currentLevel} Results for ${userName}`,
                     font: { size: 20, weight: 'bold' },
-                    color: '#1F2937'
+                    color: 'white'
                 },
                 tooltip: {
                     callbacks: {
@@ -399,8 +429,8 @@ function showLevelResults() {
     homeBtn.classList.add('hidden');
 
     if (qualifiedForNextLevel && currentLevel < totalLevels) {
-        levelUnlockMessage.textContent = `Excellent, ${userName}! You scored ${correctCount} correct answers. Level ${currentLevel + 1} is now unlocked!`;
-        levelUnlockMessage.style.color = 'green';
+        levelUnlockMessage.textContent = `Excellent, ${userName}! You scored ${correctCount} correct answers. `;
+        levelUnlockMessage.style.color = '#2ecc71';
         if (!unlockedLevels.includes(currentLevel + 1)) {
             unlockedLevels.push(currentLevel + 1);
             localStorage.setItem('unlockedLevels', JSON.stringify(unlockedLevels));
@@ -410,11 +440,11 @@ function showLevelResults() {
         homeBtn.classList.remove('hidden');
     } else if (currentLevel === totalLevels && qualifiedForNextLevel) {
         levelUnlockMessage.textContent = `Fantastic, ${userName}! You've completed all levels with a score of ${correctCount}!`;
-        levelUnlockMessage.style.color = 'blue';
+        levelUnlockMessage.style.color = '#ffc107';
         homeBtn.classList.remove('hidden');
     } else {
-        levelUnlockMessage.textContent = `Good effort, ${userName}! You scored ${correctCount} correct answers. You need 5 correct answers to unlock the next level. Try again!`;
-        levelUnlockMessage.style.color = 'red';
+        levelUnlockMessage.textContent = `Good effort, ${userName}! You scored ${correctCount} correct answers.`;
+        levelUnlockMessage.style.color = '#e74c3c';
         restartLevelBtn.classList.remove('hidden');
         homeBtn.classList.remove('hidden');
     }
@@ -423,25 +453,57 @@ function showLevelResults() {
 function goHome() {
     stopTimer();
     clearTimeout(nextQuestionTimeout);
-    startScreen.classList.remove('hidden');
-    quizContainer.classList.add('hidden');
-    resultsContainer.classList.add('hidden');
-    userNameInput.value = "";
-    userName = "";
-    currentLevel = 1;
-    currentQuestionIndex = 0;
-    currentScore = 0;
-    userAnswers = [];
-    updateLevelSelectionUI();
+    
+    if (typeof motion !== 'undefined') {
+        motion.animate('#results-container', { opacity: 0, scale: 0.9 }, { duration: 0.3 }).then(() => {
+            startScreen.classList.remove('hidden');
+            quizContainer.classList.add('hidden');
+            resultsContainer.classList.add('hidden');
+            userNameInput.value = "";
+            userName = "";
+            currentLevel = 1;
+            currentQuestionIndex = 0;
+            currentScore = 0;
+            userAnswers = [];
+            updateLevelSelectionUI();
+            motion.animate('#start-screen', { opacity: [0, 1], scale: [0.9, 1] }, { duration: 0.3 });
+        });
+    } else {
+        startScreen.classList.remove('hidden');
+        quizContainer.classList.add('hidden');
+        resultsContainer.classList.add('hidden');
+        userNameInput.value = "";
+        userName = "";
+        currentLevel = 1;
+        currentQuestionIndex = 0;
+        currentScore = 0;
+        userAnswers = [];
+        updateLevelSelectionUI();
+    }
 }
 
 function goToNextLevel() {
-    currentLevel++;
-    startNewLevelQuiz();
+    if (typeof motion !== 'undefined') {
+        motion.animate('#results-container', { opacity: 0, scale: 0.9 }, { duration: 0.3 }).then(() => {
+            currentLevel++;
+            startNewLevelQuiz();
+            motion.animate('#quiz-container', { opacity: [0, 1], scale: [0.9, 1] }, { duration: 0.3 });
+        });
+    } else {
+        currentLevel++;
+        startNewLevelQuiz();
+    }
 }
 
 function restartCurrentLevel() {
-    startNewLevelQuiz();
+    if (typeof motion !== 'undefined') {
+        motion.animate('#results-container', { opacity: 0, scale: 0.9 }, { duration: 0.3 }).then(() => {
+            startNewLevelQuiz();
+            motion.animate('#quiz-container', { opacity: [0, 1], scale: [0.9, 1] }, { duration: 0.3 });
+        });
+    } else {
+        startNewLevelQuiz();
+    }
 }
 
 // --- Event Listeners ---
